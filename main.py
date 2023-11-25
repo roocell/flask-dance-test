@@ -25,10 +25,12 @@
 
 from flask import Flask, jsonify, render_template, flash, redirect, url_for, request
 from flask_dance.contrib.github import github
+from flask_dance.contrib.google import google
 from flask_login import logout_user, login_required, current_user
 
 from models import db, login_manager, User
-from oauth import github_blueprint
+from oauth import github_blueprint, google_blueprint
+from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 
 app = Flask(
     __name__,
@@ -37,7 +39,9 @@ app = Flask(
 )
 app.secret_key = "supersecretkey"
 app.register_blueprint(github_blueprint, url_prefix="/login")
+app.register_blueprint(google_blueprint, url_prefix="/login")
 app.config['OAUTHLIB_INSECURE_TRANSPORT'] = 1
+app.config['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 1 # google changes scope on us
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///./users.db"
 
 db.init_app(app)
@@ -46,13 +50,8 @@ login_manager.init_app(app)
 with app.app_context():
     db.create_all()
 
-@app.route("/ping")
-def ping():
-  return jsonify(ping="pong")
-
-
 @app.route("/github")
-def login():
+def github_login():
   if not github.authorized:
     redirect_url = url_for("github.login")
     redirect_url = "https://www.roocell.com:5001/login/github/authorized" # TODO: shouldn't hardcode this
@@ -68,6 +67,40 @@ def login():
     pass
 
   return f"You are @{res.json()['login']} on GitHub"
+
+# https://github.com/singingwolfboy/flask-dance-google-sqla
+# have to enable the "People API" in https://console.cloud.google.com/apis
+@app.route("/google")
+def google_login():
+  if not google.authorized:
+    redirect_url = url_for("google.login")
+    redirect_url = "https://www.roocell.com:5001/login/google/authorized" # TODO: shouldn't hardcode this
+    print(f"redirect_url {redirect_url}")
+    return redirect(redirect_url)
+  try:
+    resp = google_blueprint.session.get("/oauth2/v1/userinfo")
+  except TokenExpiredError:
+    print("token is expired: logging out")
+    logout_user()
+    # this doens't work - had to remove database
+    return redirect(url_for("home_page"))
+  
+  print(f"google auth")
+  print(resp)
+  if resp.ok:
+    info = resp.json()
+    user_id = info["id"]
+    service = "google"
+
+    print(f"google user_id {user_id}")
+  return f"You are {user_id} on Google"
+
+  # resp = google.get("/plus/v1/people/me")
+  # assert resp.ok, resp.text
+  # return "You are {email} on Google".format(email=resp.json()["emails"][0]["value"])
+
+
+
 
 @app.route("/logout")
 @login_required

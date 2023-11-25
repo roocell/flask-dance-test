@@ -8,11 +8,20 @@
       <a href="{{url_for('logout')}}" class="btn btn-danger">Logout</a>
     {% else %}
       <!-- GitHub button starts here -->
-      <a href="{{url_for('login')}}"  class="btn btn-secondary">
+      <a href="{{url_for('github_login')}}"  class="btn btn-secondary">
         <i class="fa fa-github fa-fw"></i>
         <span>Login with GitHub</span>
       </a>
       <!-- GitHub button ends here -->
+
+      <!-- Google button starts here -->
+      <a href="{{url_for('google_login')}}"  class="btn btn-secondary">
+        <i class="fa fa-google fa-fw"></i>
+        <span>Login with Google</span>
+      </a>
+      <!-- Google button ends here -->
+
+
     {% endif %}
   </div>
 {% endblock content %}
