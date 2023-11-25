@@ -8,11 +8,22 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from models import OAuth, db, User
 
+import json
+
+# load services
+json_file_path = 'services.json'
+with open(json_file_path, 'r') as file:
+    services = json.load(file)
+
+for service, service_data in services.items():
+    print(f"service: {service}")
+    for key, value in service_data.items():
+        print(f"    {key}: {value}")
 
 
 github_blueprint = make_github_blueprint(
-    client_id="asdfasdf",
-    client_secret="asdfasdf",
+    client_id=services['github']['client'],
+    client_secret=services['github']['secret'],
     storage=SQLAlchemyStorage(
         OAuth,
         db.session,
