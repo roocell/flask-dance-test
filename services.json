@@ -1,0 +1,18 @@
+{
+    "google": {
+        "client": "",
+        "secret": ""
+    },
+    "github": {
+        "client": "",
+        "secret": ""
+    },
+    "teamsnap": {
+        "client": "",
+        "secret": ""
+    },
+    "facebook": {
+        "client": "",
+        "secret": ""
+    }
+}
