@@ -4,13 +4,17 @@ from flask_login import current_user, login_user
 from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.github import github, make_github_blueprint
 from flask_dance.contrib.google import google, make_google_blueprint
+from flask_dance.contrib.facebook import facebook, make_facebook_blueprint
 from flask_dance.consumer.storage.sqla import SQLAlchemyStorage
 from sqlalchemy.orm.exc import NoResultFound
 from flask_dance.consumer import OAuth2ConsumerBlueprint
-
 from models import OAuth, db, User
-
 import json
+
+# if you failed to auth seems like cookies can get messed up and you get this error
+# MismatchingStateError: mismatching_state: CSRF Warning! State not equal in request and response
+# resolve it by closing tab, then browswer(app) completely and starting over.
+
 
 # load services
 json_file_path = 'services.json'
@@ -41,6 +45,35 @@ def github_logged_in(blueprint, token):
         account_info = info.json()
         username = account_info["login"]
         service = "github"
+
+        query = User.query.filter_by(username=username)
+        try:
+            user = query.one()
+        except NoResultFound:
+            user = User(username=username, service=service)
+            db.session.add(user)
+            db.session.commit()
+        login_user(user)
+
+# Faceook
+facebook_blueprint = make_facebook_blueprint(
+    client_id=services['facebook']['client'],
+    client_secret=services['facebook']['secret'],
+    storage=SQLAlchemyStorage(
+        OAuth,
+        db.session,
+        user=current_user,
+        user_required=False,
+    ),
+)
+
+@oauth_authorized.connect_via(facebook_blueprint)
+def facebook_logged_in(blueprint, token):
+    resp = facebook.get("/me")
+    print(resp.json())
+    if resp.ok:
+        username=resp.json()["id"]
+        service = "facebook"
 
         query = User.query.filter_by(username=username)
         try:

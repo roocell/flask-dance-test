@@ -26,10 +26,11 @@
 from flask import Flask, jsonify, render_template, flash, redirect, url_for, request
 from flask_dance.contrib.github import github
 from flask_dance.contrib.google import google
+from flask_dance.contrib.facebook import facebook
 from flask_login import logout_user, login_required, current_user
 
 from models import db, login_manager, User
-from oauth import github_blueprint, google_blueprint, teamsnap_blueprint
+from oauth import github_blueprint, google_blueprint, teamsnap_blueprint, facebook_blueprint
 from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 
 app = Flask(
@@ -40,6 +41,7 @@ app = Flask(
 app.secret_key = "supersecretkey"
 app.register_blueprint(github_blueprint, url_prefix="/login")
 app.register_blueprint(google_blueprint, url_prefix="/login")
+app.register_blueprint(facebook_blueprint, url_prefix="/login")
 app.register_blueprint(teamsnap_blueprint, url_prefix="/login")
 app.config['OAUTHLIB_INSECURE_TRANSPORT'] = 1
 app.config['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 1 # google changes scope on us
@@ -117,6 +119,21 @@ def teamsnap_login():
 
   return f"You are {user_id} on Teamsnap"
 
+@app.route("/facebook")
+def facebook_login():
+  if not facebook.authorized:
+    print("facebook not authorized")
+    #redirect_url = url_for("facebook_blueprint.login")
+    redirect_url = "https://www.roocell.com:5001/login/facebook/authorized" # TODO: shouldn't hardcode this
+    return redirect(redirect_url)
+  
+  print(f"facebook auth")
+  resp = facebook.get("/me")
+  print("Here's the content of my response: " + resp.content)
+  if resp.ok:
+    service = "facebook"
+  email = resp.json()["email"]
+  return f"You are {email} on Facebook"
 
 @app.route("/logout")
 @login_required
