@@ -1,6 +1,6 @@
 {
     "google": {
-        "client": "",
+        "client": "test",
         "secret": ""
     },
     "github": {
