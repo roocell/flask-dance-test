@@ -29,7 +29,7 @@ from flask_dance.contrib.google import google
 from flask_login import logout_user, login_required, current_user
 
 from models import db, login_manager, User
-from oauth import github_blueprint, google_blueprint
+from oauth import github_blueprint, google_blueprint, teamsnap_blueprint
 from oauthlib.oauth2.rfc6749.errors import TokenExpiredError
 
 app = Flask(
@@ -40,6 +40,7 @@ app = Flask(
 app.secret_key = "supersecretkey"
 app.register_blueprint(github_blueprint, url_prefix="/login")
 app.register_blueprint(google_blueprint, url_prefix="/login")
+app.register_blueprint(teamsnap_blueprint, url_prefix="/login")
 app.config['OAUTHLIB_INSECURE_TRANSPORT'] = 1
 app.config['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 1 # google changes scope on us
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///./users.db"
@@ -95,11 +96,26 @@ def google_login():
     print(f"google user_id {user_id}")
   return f"You are {user_id} on Google"
 
+  # i think we can get an actual username/email from here.
   # resp = google.get("/plus/v1/people/me")
   # assert resp.ok, resp.text
   # return "You are {email} on Google".format(email=resp.json()["emails"][0]["value"])
 
+@app.route("/teampsnap")
+def teamsnap_login():
+  if not teamsnap_blueprint.session.authorized:
+    print("teamsnap not authorized")
+    #redirect_url = url_for("teamsnap_blueprint.login")
+    redirect_url = "https://www.roocell.com:5001/login/teamsnap/authorized" # TODO: shouldn't hardcode this
+    return redirect(redirect_url)
+  
+  print(f"teamsnap auth")
+  resp = teamsnap_blueprint.session.get("/user")
+  print("Here's the content of my response: " + resp.content)
+  if resp.ok:
+    service = "teamsnap"
 
+  return f"You are {user_id} on Teamsnap"
 
 
 @app.route("/logout")
